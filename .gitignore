@@ -1,0 +1,7 @@
+# Compiled executables
+programs/race
+programs/critical
+programs/atomic
+programs/barrier
+programs/semaphore
+programs/compare_sync

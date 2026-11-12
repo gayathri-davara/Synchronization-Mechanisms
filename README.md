@@ -34,7 +34,7 @@ The experiment evaluates correctness, execution time, and scalability as the num
 - VM Memory: 2 GB (initial configuration)
 - Workload: 10,000,000 increments for counter experiments
 
-**Note:** The experiment was performed using a VM with 2 virtual CPUs. Configurations using 4 and 8 threads therefore involve oversubscription.
+**Note:** The experiment was performed using a VM with 2 virtual CPUs. Configurations using 4 and 8 threads involve oversubscription.
 
 ## 4. Synchronization Mechanisms
 
@@ -84,6 +84,13 @@ Synchronization-Mechanisms/
 │   └── comparison-benchmark.md
 │
 ├── screenshots/
+│   ├── race-condition.png
+│   ├── critical-section.png
+│   ├── atomic-operation.png
+│   ├── barrier-synchronization.png
+│   ├── semaphore.png
+│   └── comparison-benchmark.png
+│
 ├── .gitignore
 └── README.md
 ```
@@ -155,8 +162,9 @@ The comparison program evaluates None, Critical, Atomic and Lock mechanisms usin
 |---|---:|---:|
 | 1 | 10,000,000 | 10,000,000 |
 | 2 | 5,811,036 | 10,000,000 |
+| 8 | 1,397,744 | 10,000,000 |
 
-The two-thread execution demonstrated lost updates due to unsynchronized access.
+The multi-threaded executions demonstrated lost updates due to unsynchronized access.
 
 ### 7.2 Critical Section
 
@@ -164,6 +172,7 @@ The two-thread execution demonstrated lost updates due to unsynchronized access.
 |---|---:|---:|
 | 1 | 10,000,000 | 0.16 s |
 | 2 | 10,000,000 | 0.32 s |
+| 8 | 10,000,000 | 0.79 s |
 
 The critical section maintained correctness but introduced waiting and synchronization overhead.
 
@@ -173,14 +182,21 @@ The critical section maintained correctness but introduced waiting and synchroni
 |---|---:|---:|
 | 1 | 10,000,000 | 0.10 s |
 | 2 | 10,000,000 | 0.10 s |
+| 8 | 10,000,000 | 0.16 s |
 
-Atomic operations maintained correctness with lower execution time than the critical section in these observed runs.
+Atomic operations maintained correctness with lower observed execution time than the critical section.
 
 ### 7.4 Barrier Synchronization
 
 Barrier synchronization was tested with 2, 4 and 8 threads.
 
-**Observation:** All threads printed their messages before the barrier before any thread printed its message after the barrier. The order of individual thread messages varied between executions.
+**Latest observed execution: 4 threads**
+
+All four threads printed their messages before the barrier before any thread printed its message after the barrier.
+
+Execution time reported by `/usr/bin/time`: 0.00 seconds (rounded to two decimal places).
+
+The order of individual thread messages varied between executions.
 
 ### 7.5 Semaphore
 
@@ -188,42 +204,47 @@ Two POSIX threads each performed 100,000 increments.
 
 Expected counter: 200,000.
 
-All six observed executions produced:
+Latest observed execution:
 
 ```text
 Counter = 200000
+Execution time: 0.01 seconds
 ```
 
 The binary semaphore ensured mutually exclusive access to the shared counter.
 
-### 7.6 Comparison Benchmark
+## 8. Comparison Benchmark
 
 Workload: 10,000,000 shared increments.
 
+Latest observed benchmark:
+
 | Mechanism | Threads | Final Count | Correctness | Time (s) |
 |---|---:|---:|---|---:|
-| None | 1 | 10,000,000 | Correct | 0.0070 |
-| Critical | 1 | 10,000,000 | Correct | 0.1274 |
-| Atomic | 1 | 10,000,000 | Correct | 0.0767 |
-| Lock | 1 | 10,000,000 | Correct | 0.1298 |
-| None | 2 | 5,779,308 | Incorrect | 0.0128 |
-| Critical | 2 | 10,000,000 | Correct | 0.2697 |
-| Atomic | 2 | 10,000,000 | Correct | 0.1330 |
-| Lock | 2 | 10,000,000 | Correct | 0.3053 |
-| None | 4 | 3,776,804 | Incorrect | 0.0143 |
-| Critical | 4 | 10,000,000 | Correct | 0.3148 |
-| Atomic | 4 | 10,000,000 | Correct | 0.1312 |
-| Lock | 4 | 10,000,000 | Correct | 0.3029 |
-| None | 8 | 1,255,157 | Incorrect | 0.0128 |
-| Critical | 8 | 10,000,000 | Correct | 0.3318 |
-| Atomic | 8 | 10,000,000 | Correct | 0.1280 |
-| Lock | 8 | 10,000,000 | Correct | 0.3417 |
+| None | 1 | 10,000,000 | Correct | 0.0085 |
+| Critical | 1 | 10,000,000 | Correct | 0.1287 |
+| Atomic | 1 | 10,000,000 | Correct | 0.0773 |
+| Lock | 1 | 10,000,000 | Correct | 0.1253 |
+| None | 2 | 5,672,896 | Incorrect | 0.0146 |
+| Critical | 2 | 10,000,000 | Correct | 0.3084 |
+| Atomic | 2 | 10,000,000 | Correct | 0.1589 |
+| Lock | 2 | 10,000,000 | Correct | 0.2481 |
+| None | 4 | 3,099,161 | Incorrect | 0.0215 |
+| Critical | 4 | 10,000,000 | Correct | 0.7981 |
+| Atomic | 4 | 10,000,000 | Correct | 0.1940 |
+| Lock | 4 | 10,000,000 | Correct | 1.0721 |
+| None | 8 | 2,130,423 | Incorrect | 0.0228 |
+| Critical | 8 | 10,000,000 | Correct | 0.8935 |
+| Atomic | 8 | 10,000,000 | Correct | 0.1711 |
+| Lock | 8 | 10,000,000 | Correct | 1.0188 |
 
-## 8. Observations and Comparison
+Expected correct final count: **10,000,000**
+
+## 9. Observations and Comparison
 
 | Mechanism | Correctness | Observed Performance | Scalability |
 |---|---|---|---|
-| None | Unreliable with multiple threads | Fastest | Poor correctness |
+| None | Unreliable with multiple threads | Fast but incorrect with multiple threads | Poor correctness |
 | Critical | Correct | Higher synchronization overhead | Poor in this experiment |
 | Atomic | Correct | Fastest among synchronized methods in the benchmark | Best observed performance |
 | Lock | Correct | Higher synchronization overhead | Poor in this experiment |
@@ -237,21 +258,51 @@ Workload: 10,000,000 shared increments.
 3. Atomic operations provided the best observed performance among the synchronized counter-update methods.
 4. OpenMP locks ensured correctness but had higher overhead.
 5. Barrier synchronization ensured that all threads reached the synchronization point before proceeding.
-6. Semaphore synchronization maintained the expected counter across repeated executions.
+6. Semaphore synchronization maintained the expected counter.
 7. Increasing the thread count did not improve performance on the available VM.
 
-## 9. Conclusion
+**Timing methodology:** The individual program execution times were measured using `/usr/bin/time`, which reports total process wall-clock time. The comparison benchmark measures execution time internally. These measurements use different timing scopes and should not be directly compared.
+
+**Experimental limitation:** The benchmark timings represent individual observed runs on a virtual machine with 2 virtual CPUs. The 4- and 8-thread configurations were oversubscribed. Timings may vary across executions and hardware. Unsynchronized concurrent access to a shared counter in C constitutes a data race, so its behavior is not guaranteed.
+
+## 10. Execution Screenshots
+
+The following screenshots provide evidence of the program executions.
+
+### 10.1 Race Condition
+
+![Race Condition](screenshots/race-condition.png)
+
+### 10.2 Critical Section
+
+![Critical Section](screenshots/critical-section.png)
+
+### 10.3 Atomic Operation
+
+![Atomic Operation](screenshots/atomic-operation.png)
+
+### 10.4 Barrier Synchronization
+
+![Barrier Synchronization](screenshots/barrier-synchronization.png)
+
+### 10.5 Semaphore
+
+![Semaphore](screenshots/semaphore.png)
+
+### 10.6 Comparison Benchmark
+
+![Comparison Benchmark](screenshots/comparison-benchmark.png)
+
+## 11. Conclusion
 
 The experiment demonstrated the importance of synchronization mechanisms in shared-memory parallel programming.
 
 Race conditions can cause lost updates when multiple threads access shared data without protection. Critical sections, atomic operations, locks and semaphores provide mechanisms to ensure correct access to shared resources. Barriers synchronize the execution phases of parallel programs.
 
-In the comparison benchmark, atomic operations demonstrated the best performance among the tested synchronization mechanisms for simple counter updates. Critical sections and locks introduced higher synchronization overhead.
+In the latest comparison benchmark, atomic operations demonstrated the best performance among the tested synchronization mechanisms for simple counter updates. Critical sections and locks introduced higher synchronization overhead.
 
 The experiment highlights the trade-off between correctness, execution time and scalability when selecting synchronization mechanisms.
 
-**Experimental limitation:** The benchmark timings represent individual observed runs on a virtual machine with 2 virtual CPUs. The 4- and 8-thread configurations were oversubscribed. Timings may vary across executions and hardware.
-
-## 10. Author
+## 12. Author
 
 Analyze Synchronization Mechanisms in Parallel Programs.
